@@ -1,15 +1,15 @@
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import openai
+import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Vector DB (in-memory FAISS for now)
 dimension = 384
@@ -47,12 +47,13 @@ def search(query: str, top_k=5):
 
     return results
 
-
 def ask_llm(question: str, context_docs: list):
     context = "\n\n".join([doc["text"] for doc in context_docs])
 
     prompt = f"""
-Use the following documents to answer the question.
+You are a helpful assistant.
+
+Use ONLY the following documents to answer.
 
 Documents:
 {context}
@@ -63,9 +64,6 @@ Question:
 Answer clearly and concisely.
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    response = model.generate_content(prompt)
 
-    return response.choices[0].message.content
+    return response.text
